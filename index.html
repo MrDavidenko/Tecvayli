@@ -54,8 +54,8 @@
       <div><label for="date">Datum</label><input id="date" type="date"></div>
     </div>
     <div class="btn-row" style="margin-top:8px">
-      <button id="planBtn" type="button" onclick="__app&&__app.plan()">📅 Maak 48u schema</button>
-      <button id="clearBtn" class="secondary" type="button" onclick="__app&&__app.clearAll()">🧹 Wissen</button>
+      <button id="planBtn" type="button">📅 Maak 48u schema</button>
+      <button id="clearBtn" class="secondary" type="button">🧹 Wissen</button>
     </div>
     <p class="muted" style="margin-top:8px">Hoogrisico: 48 uur na dosis (symptomen starten vaak ~1–2 dagen na T). Zet op beginscherm voor snelle toegang.</p>
   </div>
@@ -82,29 +82,27 @@
       <div><label for="anti">Antihistaminicum / Steroïd</label><textarea id="anti" placeholder="Bijv. loratadine 10 mg, prednisolon 100 mg (met tijden)"></textarea></div>
     </div>
     <div class="btn-row" style="margin-top:10px">
-      <button id="saveBtn" type="button" onclick="__app&&__app.save()">💾 Opslaan</button>
-      <button id="exportBtn" class="secondary" type="button" onclick="__app&&__app.exportData()">⬇️ Exporteer gegevens</button>
+      <button id="saveBtn" type="button">💾 Opslaan</button>
+      <button id="exportBtn" class="secondary" type="button">⬇️ Exporteer gegevens</button>
     </div>
     <p id="saveMsg" class="muted" role="status" aria-live="polite"></p>
   </div>
 </main>
 
 <div class="toolbar">
-  <button class="tool" id="nowBtn" type="button" onclick="__app&&__app.logNow()">🕒 Log nu</button>
-  <button class="tool" id="checkBtn" type="button" onclick="__app&&__app.sehCheck()">✅ SEH-check</button>
-  <button class="tool" id="installBtn" type="button" onclick="__app&&__app.install()">➕ Installeer</button>
+  <button class="tool" id="nowBtn" type="button">🕒 Log nu</button>
+  <button class="tool" id="checkBtn" type="button">✅ SEH-check</button>
+  <button class="tool" id="installBtn" type="button">➕ Installeer</button>
 </div>
 
 <script>
-  // Defensive app namespace
-  window.__app = (function(){
-    const KEY='tecvayli-monitor-nl-v24';
+  (function(){
+    const KEY='tecvayli-monitor-nl-v25';
     let deferredPrompt=null;
 
-    function q(id){return document.getElementById(id)}
-    function qs(sel){return document.querySelector(sel)}
-    function qsa(sel){return Array.from(document.querySelectorAll(sel))}
-    function exists(id){const el=q(id); if(!el) console.error('Element ontbreekt:', id); return !!el;}
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const byId = id => document.getElementById(id);
 
     function addHours(d,h){const x=new Date(d); x.setHours(x.getHours()+h); return x;}
     function hhmm(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
@@ -129,163 +127,150 @@
       `;
     }
 
+    function save(){
+      const data={
+        dose: byId('dose')?.value || '',
+        t0: byId('t0')?.value || '',
+        date: byId('date')?.value || '',
+        para: byId('para')?.value || '',
+        anti: byId('anti')?.value || '',
+        fields:{}
+      };
+      $$('[data-k]').forEach(el=>{
+        data.fields[el.getAttribute('data-k')] = el.value;
+      });
+      localStorage.setItem(KEY, JSON.stringify(data));
+      const sm = byId('saveMsg');
+      if(sm){ sm.textContent = 'Opgeslagen.'; setTimeout(()=>{ sm.textContent = ''; }, 1500); }
+    }
+
+    function restore(){
+      const raw = localStorage.getItem(KEY);
+      if(!raw) return;
+      const data = JSON.parse(raw);
+      if(byId('dose')) byId('dose').value = data.dose || byId('dose').value;
+      if(byId('t0')) byId('t0').value = data.t0 || '';
+      if(byId('date')) byId('date').value = data.date || '';
+      if(byId('para')) byId('para').value = data.para || '';
+      if(byId('anti')) byId('anti').value = data.anti || '';
+    }
+
     function restoreInputs(){
-      try{
-        const raw=localStorage.getItem(KEY);
-        const data= raw? JSON.parse(raw): {fields:{}};
-        qsa('[data-k]').forEach(el=>{
-          const k=el.getAttribute('data-k');
-          if(data.fields && data.fields[k]!==undefined){ el.value = data.fields[k]; }
-          el.addEventListener('change', save);
-          el.addEventListener('input', save);
-        });
-      }catch(e){ console.error('restoreInputs error', e); }
+      const raw = localStorage.getItem(KEY);
+      const data = raw ? JSON.parse(raw) : {fields:{}};
+      $$('[data-k]').forEach(el=>{
+        const k = el.getAttribute('data-k');
+        if(data.fields && data.fields[k]!==undefined){ el.value = data.fields[k]; }
+        el.addEventListener('change', save);
+        el.addEventListener('input', save);
+      });
     }
 
     function plan(){
-      try{
-        const tStr=q('t0').value;
-        const dStr=q('date').value;
-        if(!tStr || !dStr){ alert('Kies een datum en T-tijdstip.'); return; }
-        const base=new Date(dStr+'T'+tStr+':00');
-        const slots=[
-          {label:'Baseline vóór dosis (T−30–0 min)', t:addHours(base,-0.5)},
-          {label:'T + 2 uur', t:addHours(base,2)},
-          {label:'T + 6 uur / voor slapengaan', t:addHours(base,6)},
-          {label:'Dag +1 – ochtend', t:addHours(base,24)},
-          {label:'Dag +1 – middag', t:addHours(base,30)},
-          {label:'Dag +1 – avond', t:addHours(base,36)},
-          {label:'Dag +2 – ochtend', t:addHours(base,48)},
-          {label:'Dag +2 – middag', t:addHours(base,54)},
-          {label:'Dag +2 – avond', t:addHours(base,60)}
-        ];
-        let html='';
-        for(const s of slots){
-          const key=s.label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
-          html+=mkMeasureCard(s.label, key, hhmm(s.t));
-        }
-        const scheduleEl=q('schedule');
-        scheduleEl.innerHTML=html;
-        restoreInputs();
-        save();
-      }catch(e){ console.error('plan error', e); alert('Er ging iets mis bij het maken van het schema. Probeer opnieuw.'); }
-    }
-
-    function save(){
-      try{
-        const data={
-          dose: q('dose')?.value || '',
-          t0: q('t0')?.value || '',
-          date: q('date')?.value || '',
-          para: q('para')?.value || '',
-          anti: q('anti')?.value || '',
-          fields:{}
-        };
-        qsa('[data-k]').forEach(el=>{
-          data.fields[el.getAttribute('data-k')]=el.value;
-        });
-        localStorage.setItem(KEY, JSON.stringify(data));
-        const sm=q('saveMsg'); if(sm){ sm.textContent='Opgeslagen.'; setTimeout(()=>{sm.textContent='';},1500); }
-      }catch(e){ console.error('save error', e); }
-    }
-
-    function exportData(){
-      try{
-        const raw=localStorage.getItem(KEY) or '{}'
-      }catch(e){ console.error('export error', e); }
-      const raw2=localStorage.getItem(KEY) or '{}'
-    }
-
-    function exportData(){
-      try{
-        const raw=localStorage.getItem(KEY) || '{}';
-        const blob=new Blob([raw], {type:'application/json'});
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        a.href=url; a.download='tecvayli-monitor-data.json'; a.click();
-        URL.revokeObjectURL(url);
-      }catch(e){ console.error('exportData error', e); }
+      const tStr = byId('t0')?.value;
+      const dStr = byId('date')?.value;
+      if(!tStr || !dStr){ alert('Kies een datum en T-tijdstip.'); return; }
+      const base = new Date(dStr+'T'+tStr+':00');
+      const slots = [
+        {label:'Baseline vóór dosis (T−30–0 min)', t:addHours(base,-0.5)},
+        {label:'T + 2 uur', t:addHours(base,2)},
+        {label:'T + 6 uur / voor slapengaan', t:addHours(base,6)},
+        {label:'Dag +1 – ochtend', t:addHours(base,24)},
+        {label:'Dag +1 – middag', t:addHours(base,30)},
+        {label:'Dag +1 – avond', t:addHours(base,36)},
+        {label:'Dag +2 – ochtend', t:addHours(base,48)},
+        {label:'Dag +2 – middag', t:addHours(base,54)},
+        {label:'Dag +2 – avond', t:addHours(base,60)}
+      ];
+      let html = '';
+      for(const s of slots){
+        const key=s.label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+        html += mkMeasureCard(s.label, key, hhmm(s.t));
+      }
+      const schedule = byId('schedule');
+      schedule.innerHTML = html;
+      restoreInputs();
+      save();
     }
 
     function clearAll(){
-      try{
-        if(confirm('Alle opgeslagen gegevens wissen?')){
-          localStorage.removeItem(KEY); location.reload();
-        }
-      }catch(e){ console.error('clearAll error', e); }
+      if(confirm('Alle opgeslagen gegevens wissen?')){
+        localStorage.removeItem(KEY);
+        location.reload();
+      }
     }
 
     function logNow(){
-      try{
-        const inputs=qsa('[data-k$="-time"]');
-        if(!inputs.length){ alert('Maak eerst het 48u schema.'); return; }
-        const now=new Date();
-        const hh=String(now.getHours()).padStart(2,'0');
-        const mm=String(now.getMinutes()).padStart(2,'0');
-        const empty=inputs.find(i=>!i.value) || inputs[inputs.length-1];
-        empty.value=hh+':'+mm; save();
-      }catch(e){ console.error('logNow error', e); }
+      const inputs = $$('[data-k$="-time"]');
+      if(!inputs.length){ alert('Maak eerst het 48u schema.'); return; }
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2,'0');
+      const mm = String(now.getMinutes()).padStart(2,'0');
+      const empty = inputs.find(i=>!i.value) || inputs[inputs.length-1];
+      empty.value = hh+':'+mm;
+      save();
     }
 
     function sehCheck(){
-      try{
-        const arr=qsa('[data-k$="-temp"]');
-        const arr2=qsa('[data-k$="-spo2"]');
-        const temp = arr.length ? parseFloat(arr[arr.length-1].value||'') : NaN;
-        const spo2 = arr2.length ? parseInt(arr2[arr2.length-1].value||'',10) : NaN;
-        let alerts=[];
-        if(!isNaN(temp) && temp>=38.5) alerts.push('Koorts ≥38,5 °C');
-        if(!isNaN(spo2) && spo2<94) alerts.push('SpO₂ <94% in rust');
-        alert(alerts.length ? ('LET OP\n'+alerts.join('\n')+'\n→ Ga naar de SEH bij twijfel.') : 'Geen directe SEH-trigger gedetecteerd. Bij klachten altijd klinisch beoordelen.');
-      }catch(e){ console.error('sehCheck error', e); }
+      const temps = $$('[data-k$="-temp"]');
+      const spo2s = $$('[data-k$="-spo2"]');
+      const temp = temps.length ? parseFloat(temps[temps.length-1].value || '') : NaN;
+      const spo2 = spo2s.length ? parseInt(spo2s[spo2s.length-1].value || '', 10) : NaN;
+      const alerts = [];
+      if(!isNaN(temp) && temp >= 38.5) alerts.push('Koorts ≥38,5 °C');
+      if(!isNaN(spo2) && spo2 < 94) alerts.push('SpO₂ <94% in rust');
+      alert(alerts.length ? ('LET OP\n' + alerts.join('\n') + '\n→ Ga naar de SEH bij twijfel.') : 'Geen directe SEH-trigger gedetecteerd. Bij klachten altijd klinisch beoordelen.');
+    }
+
+    function exportData(){
+      const raw = localStorage.getItem(KEY) || '{}';
+      const blob = new Blob([raw], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'tecvayli-monitor-data.json';
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     function install(){
-      if(window.__deferredPrompt){
-        window.__deferredPrompt.prompt(); window.__deferredPrompt.userChoice.finally(()=>{window.__deferredPrompt=null;});
+      if(deferredPrompt){
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.finally(()=>{ deferredPrompt=null; });
       }else{
         alert('Open via HTTPS in Chrome om te installeren (of gebruik ⋮ → Toevoegen aan beginscherm).');
       }
     }
 
-    function onBeforeInstallPrompt(e){
-      e.preventDefault();
-      window.__deferredPrompt=e; deferredPrompt=e;
-    }
-
     function registerSW(){
       if('serviceWorker' in navigator){
         window.addEventListener('load', ()=>{
-          navigator.serviceWorker.register('sw.js').then(()=>{ /* ok */ }).catch(err=>console.error('SW reg error', err));
+          navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW reg error', err));
         });
       }
     }
 
     function init(){
-      // Basic existence checks
-      ['dose','t0','date','planBtn','clearBtn','schedule','para','anti','saveBtn','exportBtn','nowBtn','checkBtn','installBtn','saveMsg'].forEach(exists);
-      // Restore and SW
+      // Restore data first
       restore();
+      // Attach listeners
+      byId('planBtn')?.addEventListener('click', plan);
+      byId('clearBtn')?.addEventListener('click', clearAll);
+      byId('saveBtn')?.addEventListener('click', save);
+      byId('exportBtn')?.addEventListener('click', exportData);
+      byId('nowBtn')?.addEventListener('click', logNow);
+      byId('checkBtn')?.addEventListener('click', sehCheck);
+      byId('installBtn')?.addEventListener('click', install);
+      // Install prompt capture
+      window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; });
+      // SW
       registerSW();
-      // add listeners (redundant to inline onclick, double-safe)
-      const add=(id,fn)=>{ const el=q(id); if(el){ el.addEventListener('click', fn);} };
-      add('planBtn', plan); add('clearBtn', clearAll);
-      add('saveBtn', save); add('exportBtn', exportData);
-      add('nowBtn', logNow); add('checkBtn', sehCheck); add('installBtn', install);
-      window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
       console.log('App init OK');
     }
 
-    // Public API
-    return { plan, save, exportData, clearAll, logNow, sehCheck, install, init };
-  })();
-
-  // DOM ready (defensive)
-  (function(){
     if(document.readyState==='complete' || document.readyState==='interactive'){
-      setTimeout(()=>{ try{ __app.init(); }catch(e){ console.error('init error (early)', e); } }, 0);
+      setTimeout(init, 0);
     }else{
-      document.addEventListener('DOMContentLoaded', ()=>{ try{ __app.init(); }catch(e){ console.error('init error (DOMContentLoaded)', e); } });
+      document.addEventListener('DOMContentLoaded', init);
     }
   })();
 </script>
