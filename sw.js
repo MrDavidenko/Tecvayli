@@ -1,5 +1,5 @@
-const CACHE='tecvayli-monitor-v28';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='tecvayli-monitor-v29';
+const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./app.js'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(
