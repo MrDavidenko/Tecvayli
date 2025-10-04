@@ -1,4 +1,4 @@
-const CACHE='tecvayli-monitor-v27';
+const CACHE='tecvayli-monitor-v28';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
