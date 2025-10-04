@@ -24,10 +24,10 @@
   label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
   input,select,textarea,button{font:inherit;border:1px solid #e5e5e5;border-radius:12px;padding:14px 12px;background:#fff;min-height:48px;width:100%}
   textarea{min-height:110px}
-  button{background:var(--primary);color:#fff;border:none}
+  button{background:#2196f3;color:#fff;border:none}
   button.secondary{background:#eef3f8;color:#0d47a1;border:1px solid #d6e6fb}
   .btn-row{display:flex;gap:10px;flex-wrap:wrap}
-  .muted{color:var(--muted);font-size:13px}
+  .muted{color:#666;font-size:13px}
   .chip{display:inline-block;background:#e3f2fd;color:#0d47a1;padding:8px 10px;border-radius:999px;font-size:12px;margin:4px 6px 0 0}
   .section-title{font-size:16px;margin:0 0 8px 0}
   .measure-card{border:1px solid #efefef;border-radius:14px;padding:12px;background:#fff}
@@ -113,23 +113,23 @@
   });
 
   function mkMeasureCard(title, key, timeVal){
-    return `
-      <div class="card measure-card" data-key="${key}">
-        <h3 class="section-title">${title}</h3>
+    return \`
+      <div class="card measure-card" data-key="\${key}">
+        <h3 class="section-title">\${title}</h3>
         <div class="measure-grid">
-          <div><label>Tijd</label><input type="time" data-k="${key}-time" value="${timeVal||''}"></div>
-          <div><label>Temperatuur (°C)</label><input type="number" step="0.1" inputmode="decimal" data-k="${key}-temp" placeholder="bijv. 38.1"></div>
-          <div><label>SpO₂ (%)</label><input type="number" step="1" inputmode="numeric" data-k="${key}-spo2" placeholder="bijv. 97"></div>
-          <div><label>Pols (bpm)</label><input type="number" step="1" inputmode="numeric" data-k="${key}-pulse" placeholder="bijv. 88"></div>
-          <div><label>BP zittend (mmHg)</label><input type="text" inputmode="numeric" data-k="${key}-bps" placeholder="bijv. 118/75"></div>
-          <div><label>BP staand (mmHg)</label><input type="text" inputmode="numeric" data-k="${key}-bps2" placeholder="bijv. 110/70"></div>
+          <div><label>Tijd</label><input type="time" data-k="\${key}-time" value="\${timeVal||''}"></div>
+          <div><label>Temperatuur (°C)</label><input type="number" step="0.1" inputmode="decimal" data-k="\${key}-temp" placeholder="bijv. 38.1"></div>
+          <div><label>SpO₂ (%)</label><input type="number" step="1" inputmode="numeric" data-k="\${key}-spo2" placeholder="bijv. 97"></div>
+          <div><label>Pols (bpm)</label><input type="number" step="1" inputmode="numeric" data-k="\${key}-pulse" placeholder="bijv. 88"></div>
+          <div><label>BP zittend (mmHg)</label><input type="text" inputmode="numeric" data-k="\${key}-bps" placeholder="bijv. 118/75"></div>
+          <div><label>BP staand (mmHg)</label><input type="text" inputmode="numeric" data-k="\${key}-bps2" placeholder="bijv. 110/70"></div>
           <div class="cols-2" style="grid-column:1/-1">
-            <div><label>Vocht (mL)</label><input type="number" step="50" inputmode="numeric" data-k="${key}-fluids" placeholder="bijv. 500"></div>
-            <div><label>Klachten / notities</label><input type="text" data-k="${key}-sym" placeholder="bijv. rillingen, duizelig"></div>
+            <div><label>Vocht (mL)</label><input type="number" step="50" inputmode="numeric" data-k="\${key}-fluids" placeholder="bijv. 500"></div>
+            <div><label>Klachten / notities</label><input type="text" data-k="\${key}-sym" placeholder="bijv. rillingen, duizelig"></div>
           </div>
         </div>
       </div>
-    `;
+    \`;
   }
   function addHours(d,h){const x=new Date(d);x.setHours(x.getHours()+h);return x;}
   function hhmm(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
@@ -170,13 +170,13 @@
       fields: {}
     };
     document.querySelectorAll('[data-k]').forEach(el=>{ data.fields[el.getAttribute('data-k')] = el.value; });
-    localStorage.setItem('tecvayli-monitor-nl-v2', JSON.stringify(data));
-    saveMsg.textContent = "Opgeslagen.";
-    setTimeout(()=>saveMsg.textContent="", 1500);
+    localStorage.setItem('tecvayli-monitor-nl-v22', JSON.stringify(data));
+    document.getElementById('saveMsg').textContent = "Opgeslagen.";
+    setTimeout(()=>document.getElementById('saveMsg').textContent="", 1500);
   }
 
   function restore(){
-    const raw = localStorage.getItem('tecvayli-monitor-nl-v2');
+    const raw = localStorage.getItem('tecvayli-monitor-nl-v22');
     if(!raw) return;
     const data = JSON.parse(raw);
     document.getElementById('dose').value = data.dose || document.getElementById('dose').value;
@@ -188,7 +188,7 @@
   }
 
   function restoreInputs(){
-    const raw = localStorage.getItem('tecvayli-monitor-nl-v2');
+    const raw = localStorage.getItem('tecvayli-monitor-nl-v22');
     const data = raw ? JSON.parse(raw) : {fields:{}};
     document.querySelectorAll('[data-k]').forEach(el=>{
       const k = el.getAttribute('data-k');
@@ -200,7 +200,7 @@
 
   function clearAll(){
     if(confirm('Alle opgeslagen gegevens wissen?')){
-      localStorage.removeItem('tecvayli-monitor-nl-v2'); location.reload();
+      localStorage.removeItem('tecvayli-monitor-nl-v22'); location.reload();
     }
   }
 
@@ -224,19 +224,21 @@
     alert(alerts.length ? ('LET OP\n'+alerts.join('\n')+'\n→ Ga naar de SEH bij twijfel.') : 'Geen directe SEH-trigger gedetecteerd. Bij klachten altijd klinisch beoordelen.');
   }
 
-  planBtn.addEventListener('click', plan);
-  clearBtn.addEventListener('click', clearAll);
-  saveBtn.addEventListener('click', save);
-  exportBtn.addEventListener('click', ()=>{
-    const raw = localStorage.getItem('tecvayli-monitor-nl-v2') || '{}';
+  document.getElementById('planBtn').addEventListener('click', plan);
+  document.getElementById('clearBtn').addEventListener('click', clearAll);
+  document.getElementById('saveBtn').addEventListener('click', save);
+  document.getElementById('exportBtn').addEventListener('click', ()=>{
+    const raw = localStorage.getItem('tecvayli-monitor-nl-v22') || '{}';
     const blob = new Blob([raw], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download='tecvayli-monitor-data.json'; a.click(); URL.revokeObjectURL(url);
   });
-  nowBtn.addEventListener('click', logNow);
-  checkBtn.addEventListener('click', sehCheck);
+  document.getElementById('nowBtn').addEventListener('click', logNow);
+  document.getElementById('checkBtn').addEventListener('click', sehCheck);
 
-  if('serviceWorker' in navigator){ window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
 
   restore();
 </script>
