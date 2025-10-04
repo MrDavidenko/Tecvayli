@@ -2,6 +2,7 @@
 <html lang="nl">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tecvayli Monitor (NL)</title>
 <base href="/Tecvayli/">
@@ -23,7 +24,7 @@
   label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
   input,select,textarea,button{font:inherit;border:1px solid #e5e5e5;border-radius:12px;padding:14px 12px;background:#fff;min-height:48px;width:100%}
   textarea{min-height:110px}
-  button{background:#2196f3;color:#fff;border:none}
+  button{background:var(--primary);color:#fff;border:none;cursor:pointer}
   button.secondary{background:#eef3f8;color:#0d47a1;border:1px solid #d6e6fb}
   .btn-row{display:flex;gap:10px;flex-wrap:wrap}
   .muted{color:#666;font-size:13px}
@@ -38,22 +39,23 @@
 </head>
 <body>
 <header><h1>TECVAYLI® – Thuismonitoring</h1></header>
+
 <main>
   <div class="card">
     <div class="grid cols-3">
-      <div><label>Dosis</label>
+      <div><label for="dose">Dosis</label>
         <select id="dose">
           <option>0,06 mg/kg – Step-up 1</option>
           <option>0,30 mg/kg – Step-up 2</option>
           <option>0,80 mg/kg – Eerste volledige dosis</option>
         </select>
       </div>
-      <div><label>Tijdstip toediening (T)</label><input id="t0" type="time"></div>
-      <div><label>Datum</label><input id="date" type="date"></div>
+      <div><label for="t0">Tijdstip toediening (T)</label><input id="t0" type="time"></div>
+      <div><label for="date">Datum</label><input id="date" type="date"></div>
     </div>
     <div class="btn-row" style="margin-top:8px">
-      <button id="planBtn">📅 Maak 48u schema</button>
-      <button id="clearBtn" class="secondary">🧹 Wissen</button>
+      <button id="planBtn" type="button" onclick="__app&&__app.plan()">📅 Maak 48u schema</button>
+      <button id="clearBtn" class="secondary" type="button" onclick="__app&&__app.clearAll()">🧹 Wissen</button>
     </div>
     <p class="muted" style="margin-top:8px">Hoogrisico: 48 uur na dosis (symptomen starten vaak ~1–2 dagen na T). Zet op beginscherm voor snelle toegang.</p>
   </div>
@@ -71,175 +73,221 @@
     <p class="muted">Ga bij twijfel direct naar de SEH (112 bij nood).</p>
   </div>
 
-  <div id="schedule"></div>
+  <div id="schedule" aria-live="polite"></div>
 
   <div class="card">
     <h3 class="section-title">Notities & Medicatie</h3>
     <div class="grid cols-2">
-      <div><label>Paracetamol</label><textarea id="para" placeholder="Bijv. 1000 mg om 14:00 en 22:00"></textarea></div>
-      <div><label>Antihistaminicum / Steroïd</label><textarea id="anti" placeholder="Bijv. loratadine 10 mg, prednisolon 100 mg (met tijden)"></textarea></div>
+      <div><label for="para">Paracetamol</label><textarea id="para" placeholder="Bijv. 1000 mg om 14:00 en 22:00"></textarea></div>
+      <div><label for="anti">Antihistaminicum / Steroïd</label><textarea id="anti" placeholder="Bijv. loratadine 10 mg, prednisolon 100 mg (met tijden)"></textarea></div>
     </div>
     <div class="btn-row" style="margin-top:10px">
-      <button id="saveBtn">💾 Opslaan</button>
-      <button id="exportBtn" class="secondary">⬇️ Exporteer gegevens</button>
+      <button id="saveBtn" type="button" onclick="__app&&__app.save()">💾 Opslaan</button>
+      <button id="exportBtn" class="secondary" type="button" onclick="__app&&__app.exportData()">⬇️ Exporteer gegevens</button>
     </div>
-    <p id="saveMsg" class="muted"></p>
+    <p id="saveMsg" class="muted" role="status" aria-live="polite"></p>
   </div>
 </main>
 
 <div class="toolbar">
-  <button class="tool" id="nowBtn">🕒 Log nu</button>
-  <button class="tool" id="checkBtn">✅ SEH-check</button>
-  <button class="tool" id="installBtn">➕ Installeer</button>
+  <button class="tool" id="nowBtn" type="button" onclick="__app&&__app.logNow()">🕒 Log nu</button>
+  <button class="tool" id="checkBtn" type="button" onclick="__app&&__app.sehCheck()">✅ SEH-check</button>
+  <button class="tool" id="installBtn" type="button" onclick="__app&&__app.install()">➕ Installeer</button>
 </div>
 
 <script>
-  const scheduleEl = document.getElementById('schedule');
-  const planBtn = document.getElementById('planBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const saveBtn = document.getElementById('saveBtn');
-  const exportBtn = document.getElementById('exportBtn');
-  const saveMsg = document.getElementById('saveMsg');
-  const nowBtn = document.getElementById('nowBtn');
-  const checkBtn = document.getElementById('checkBtn');
-  const installBtn = document.getElementById('installBtn');
-  let deferredPrompt = null;
+  // Defensive app namespace
+  window.__app = (function(){
+    const KEY='tecvayli-monitor-nl-v24';
+    let deferredPrompt=null;
 
-  window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; });
-  installBtn.addEventListener('click', async ()=>{
-    if(deferredPrompt){ deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; }
-    else{ alert('Open via HTTPS in Chrome om te installeren.'); }
-  });
+    function q(id){return document.getElementById(id)}
+    function qs(sel){return document.querySelector(sel)}
+    function qsa(sel){return Array.from(document.querySelectorAll(sel))}
+    function exists(id){const el=q(id); if(!el) console.error('Element ontbreekt:', id); return !!el;}
 
-  function mkMeasureCard(title, key, timeVal){
-    return \`
-      <div class="card measure-card" data-key="\${key}">
-        <h3 class="section-title">\${title}</h3>
-        <div class="measure-grid">
-          <div><label>Tijd</label><input type="time" data-k="\${key}-time" value="\${timeVal||''}"></div>
-          <div><label>Temperatuur (°C)</label><input type="number" step="0.1" inputmode="decimal" data-k="\${key}-temp" placeholder="bijv. 38.1"></div>
-          <div><label>SpO₂ (%)</label><input type="number" step="1" inputmode="numeric" data-k="\${key}-spo2" placeholder="bijv. 97"></div>
-          <div><label>Pols (bpm)</label><input type="number" step="1" inputmode="numeric" data-k="\${key}-pulse" placeholder="bijv. 88"></div>
-          <div><label>BP zittend (mmHg)</label><input type="text" inputmode="numeric" data-k="\${key}-bps" placeholder="bijv. 118/75"></div>
-          <div><label>BP staand (mmHg)</label><input type="text" inputmode="numeric" data-k="\${key}-bps2" placeholder="bijv. 110/70"></div>
-          <div class="cols-2" style="grid-column:1/-1">
-            <div><label>Vocht (mL)</label><input type="number" step="50" inputmode="numeric" data-k="\${key}-fluids" placeholder="bijv. 500"></div>
-            <div><label>Klachten / notities</label><input type="text" data-k="\${key}-sym" placeholder="bijv. rillingen, duizelig"></div>
+    function addHours(d,h){const x=new Date(d); x.setHours(x.getHours()+h); return x;}
+    function hhmm(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+
+    function mkMeasureCard(title, key, timeVal){
+      return `
+        <div class="card measure-card" data-key="${key}">
+          <h3 class="section-title">${title}</h3>
+          <div class="measure-grid">
+            <div><label>Tijd</label><input type="time" data-k="${key}-time" value="${timeVal||''}"></div>
+            <div><label>Temperatuur (°C)</label><input type="number" step="0.1" inputmode="decimal" data-k="${key}-temp" placeholder="bijv. 38.1"></div>
+            <div><label>SpO₂ (%)</label><input type="number" step="1" inputmode="numeric" data-k="${key}-spo2" placeholder="bijv. 97"></div>
+            <div><label>Pols (bpm)</label><input type="number" step="1" inputmode="numeric" data-k="${key}-pulse" placeholder="bijv. 88"></div>
+            <div><label>BP zittend (mmHg)</label><input type="text" inputmode="numeric" data-k="${key}-bps" placeholder="bijv. 118/75"></div>
+            <div><label>BP staand (mmHg)</label><input type="text" inputmode="numeric" data-k="${key}-bps2" placeholder="bijv. 110/70"></div>
+            <div class="cols-2" style="grid-column:1/-1">
+              <div><label>Vocht (mL)</label><input type="number" step="50" inputmode="numeric" data-k="${key}-fluids" placeholder="bijv. 500"></div>
+              <div><label>Klachten / notities</label><input type="text" data-k="${key}-sym" placeholder="bijv. rillingen, duizelig"></div>
+            </div>
           </div>
         </div>
-      </div>
-    \`;
-  }
-  function addHours(d,h){const x=new Date(d);x.setHours(x.getHours()+h);return x;}
-  function hhmm(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
-
-  function plan(){
-    const tStr = document.getElementById('t0').value;
-    const dStr = document.getElementById('date').value;
-    if(!tStr || !dStr){ alert('Kies een datum en T-tijdstip.'); return; }
-    const base = new Date(dStr+'T'+tStr+':00');
-    const slots = [
-      {label:'Baseline vóór dosis (T−30–0 min)', t:addHours(base,-0.5)},
-      {label:'T + 2 uur', t:addHours(base,2)},
-      {label:'T + 6 uur / voor slapengaan', t:addHours(base,6)},
-      {label:'Dag +1 – ochtend', t:addHours(base,24)},
-      {label:'Dag +1 – middag', t:addHours(base,30)},
-      {label:'Dag +1 – avond', t:addHours(base,36)},
-      {label:'Dag +2 – ochtend', t:addHours(base,48)},
-      {label:'Dag +2 – middag', t:addHours(base,54)},
-      {label:'Dag +2 – avond', t:addHours(base,60)}
-    ];
-    let html='';
-    for(const s of slots){
-      const key = s.label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
-      html += mkMeasureCard(s.label, key, hhmm(s.t));
+      `;
     }
-    scheduleEl.innerHTML = html;
-    restoreInputs();
-    save();
-  }
 
-  function save(){
-    const data = {
-      dose: document.getElementById('dose').value,
-      t0: document.getElementById('t0').value,
-      date: document.getElementById('date').value,
-      para: document.getElementById('para').value,
-      anti: document.getElementById('anti').value,
-      fields: {}
-    };
-    document.querySelectorAll('[data-k]').forEach(el=>{ data.fields[el.getAttribute('data-k')] = el.value; });
-    localStorage.setItem('tecvayli-monitor-nl-v23', JSON.stringify(data));
-    document.getElementById('saveMsg').textContent = "Opgeslagen.";
-    setTimeout(()=>document.getElementById('saveMsg').textContent="", 1500);
-  }
-
-  function restore(){
-    const raw = localStorage.getItem('tecvayli-monitor-nl-v23');
-    if(!raw) return;
-    const data = JSON.parse(raw);
-    document.getElementById('dose').value = data.dose || document.getElementById('dose').value;
-    document.getElementById('t0').value = data.t0 || "";
-    document.getElementById('date').value = data.date || "";
-    document.getElementById('para').value = data.para || "";
-    document.getElementById('anti').value = data.anti || "";
-    if(data.t0 && data.date){ plan(); }
-  }
-
-  function restoreInputs(){
-    const raw = localStorage.getItem('tecvayli-monitor-nl-v23');
-    const data = raw ? JSON.parse(raw) : {fields:{}};
-    document.querySelectorAll('[data-k]').forEach(el=>{
-      const k = el.getAttribute('data-k');
-      if(data.fields && data.fields[k]!==undefined){ el.value = data.fields[k]; }
-      el.addEventListener('change', save);
-      el.addEventListener('input', save);
-    });
-  }
-
-  function clearAll(){
-    if(confirm('Alle opgeslagen gegevens wissen?')){
-      localStorage.removeItem('tecvayli-monitor-nl-v23'); location.reload();
+    function restoreInputs(){
+      try{
+        const raw=localStorage.getItem(KEY);
+        const data= raw? JSON.parse(raw): {fields:{}};
+        qsa('[data-k]').forEach(el=>{
+          const k=el.getAttribute('data-k');
+          if(data.fields && data.fields[k]!==undefined){ el.value = data.fields[k]; }
+          el.addEventListener('change', save);
+          el.addEventListener('input', save);
+        });
+      }catch(e){ console.error('restoreInputs error', e); }
     }
-  }
 
-  function logNow(){
-    const inputs = Array.from(document.querySelectorAll('[data-k$="-time"]'));
-    if(!inputs.length){ alert('Maak eerst het 48u schema.'); return; }
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2,'0');
-    const mm = String(now.getMinutes()).padStart(2,'0');
-    const empty = inputs.find(i=>!i.value) || inputs[inputs.length-1];
-    empty.value = hh+':'+mm; save();
-  }
+    function plan(){
+      try{
+        const tStr=q('t0').value;
+        const dStr=q('date').value;
+        if(!tStr || !dStr){ alert('Kies een datum en T-tijdstip.'); return; }
+        const base=new Date(dStr+'T'+tStr+':00');
+        const slots=[
+          {label:'Baseline vóór dosis (T−30–0 min)', t:addHours(base,-0.5)},
+          {label:'T + 2 uur', t:addHours(base,2)},
+          {label:'T + 6 uur / voor slapengaan', t:addHours(base,6)},
+          {label:'Dag +1 – ochtend', t:addHours(base,24)},
+          {label:'Dag +1 – middag', t:addHours(base,30)},
+          {label:'Dag +1 – avond', t:addHours(base,36)},
+          {label:'Dag +2 – ochtend', t:addHours(base,48)},
+          {label:'Dag +2 – middag', t:addHours(base,54)},
+          {label:'Dag +2 – avond', t:addHours(base,60)}
+        ];
+        let html='';
+        for(const s of slots){
+          const key=s.label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+          html+=mkMeasureCard(s.label, key, hhmm(s.t));
+        }
+        const scheduleEl=q('schedule');
+        scheduleEl.innerHTML=html;
+        restoreInputs();
+        save();
+      }catch(e){ console.error('plan error', e); alert('Er ging iets mis bij het maken van het schema. Probeer opnieuw.'); }
+    }
 
-  function sehCheck(){
-    const last = (sel)=>{const arr=Array.from(document.querySelectorAll(sel));return arr[arr.length-1];}
-    const temp = parseFloat(last('[data-k$="-temp"]')?.value||"");
-    const spo2 = parseInt(last('[data-k$="-spo2"]')?.value||"",10);
-    let alerts=[];
-    if(!isNaN(temp) && temp>=38.5) alerts.push('Koorts ≥38,5 °C');
-    if(!isNaN(spo2) && spo2<94) alerts.push('SpO₂ <94% in rust');
-    alert(alerts.length ? ('LET OP\n'+alerts.join('\n')+'\n→ Ga naar de SEH bij twijfel.') : 'Geen directe SEH-trigger gedetecteerd. Bij klachten altijd klinisch beoordelen.');
-  }
+    function save(){
+      try{
+        const data={
+          dose: q('dose')?.value || '',
+          t0: q('t0')?.value || '',
+          date: q('date')?.value || '',
+          para: q('para')?.value || '',
+          anti: q('anti')?.value || '',
+          fields:{}
+        };
+        qsa('[data-k]').forEach(el=>{
+          data.fields[el.getAttribute('data-k')]=el.value;
+        });
+        localStorage.setItem(KEY, JSON.stringify(data));
+        const sm=q('saveMsg'); if(sm){ sm.textContent='Opgeslagen.'; setTimeout(()=>{sm.textContent='';},1500); }
+      }catch(e){ console.error('save error', e); }
+    }
 
-  document.getElementById('planBtn').addEventListener('click', plan);
-  document.getElementById('clearBtn').addEventListener('click', clearAll);
-  document.getElementById('saveBtn').addEventListener('click', save);
-  document.getElementById('exportBtn').addEventListener('click', ()=>{
-    const raw = localStorage.getItem('tecvayli-monitor-nl-v23') || '{}';
-    const blob = new Blob([raw], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download='tecvayli-monitor-data.json'; a.click(); URL.revokeObjectURL(url);
-  });
-  document.getElementById('nowBtn').addEventListener('click', logNow);
-  document.getElementById('checkBtn').addEventListener('click', sehCheck);
+    function exportData(){
+      try{
+        const raw=localStorage.getItem(KEY) or '{}'
+      }catch(e){ console.error('export error', e); }
+      const raw2=localStorage.getItem(KEY) or '{}'
+    }
 
-  if('serviceWorker' in navigator){
-    window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-  }
+    function exportData(){
+      try{
+        const raw=localStorage.getItem(KEY) || '{}';
+        const blob=new Blob([raw], {type:'application/json'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url; a.download='tecvayli-monitor-data.json'; a.click();
+        URL.revokeObjectURL(url);
+      }catch(e){ console.error('exportData error', e); }
+    }
 
-  restore();
+    function clearAll(){
+      try{
+        if(confirm('Alle opgeslagen gegevens wissen?')){
+          localStorage.removeItem(KEY); location.reload();
+        }
+      }catch(e){ console.error('clearAll error', e); }
+    }
+
+    function logNow(){
+      try{
+        const inputs=qsa('[data-k$="-time"]');
+        if(!inputs.length){ alert('Maak eerst het 48u schema.'); return; }
+        const now=new Date();
+        const hh=String(now.getHours()).padStart(2,'0');
+        const mm=String(now.getMinutes()).padStart(2,'0');
+        const empty=inputs.find(i=>!i.value) || inputs[inputs.length-1];
+        empty.value=hh+':'+mm; save();
+      }catch(e){ console.error('logNow error', e); }
+    }
+
+    function sehCheck(){
+      try{
+        const arr=qsa('[data-k$="-temp"]');
+        const arr2=qsa('[data-k$="-spo2"]');
+        const temp = arr.length ? parseFloat(arr[arr.length-1].value||'') : NaN;
+        const spo2 = arr2.length ? parseInt(arr2[arr2.length-1].value||'',10) : NaN;
+        let alerts=[];
+        if(!isNaN(temp) && temp>=38.5) alerts.push('Koorts ≥38,5 °C');
+        if(!isNaN(spo2) && spo2<94) alerts.push('SpO₂ <94% in rust');
+        alert(alerts.length ? ('LET OP\n'+alerts.join('\n')+'\n→ Ga naar de SEH bij twijfel.') : 'Geen directe SEH-trigger gedetecteerd. Bij klachten altijd klinisch beoordelen.');
+      }catch(e){ console.error('sehCheck error', e); }
+    }
+
+    function install(){
+      if(window.__deferredPrompt){
+        window.__deferredPrompt.prompt(); window.__deferredPrompt.userChoice.finally(()=>{window.__deferredPrompt=null;});
+      }else{
+        alert('Open via HTTPS in Chrome om te installeren (of gebruik ⋮ → Toevoegen aan beginscherm).');
+      }
+    }
+
+    function onBeforeInstallPrompt(e){
+      e.preventDefault();
+      window.__deferredPrompt=e; deferredPrompt=e;
+    }
+
+    function registerSW(){
+      if('serviceWorker' in navigator){
+        window.addEventListener('load', ()=>{
+          navigator.serviceWorker.register('sw.js').then(()=>{ /* ok */ }).catch(err=>console.error('SW reg error', err));
+        });
+      }
+    }
+
+    function init(){
+      // Basic existence checks
+      ['dose','t0','date','planBtn','clearBtn','schedule','para','anti','saveBtn','exportBtn','nowBtn','checkBtn','installBtn','saveMsg'].forEach(exists);
+      // Restore and SW
+      restore();
+      registerSW();
+      // add listeners (redundant to inline onclick, double-safe)
+      const add=(id,fn)=>{ const el=q(id); if(el){ el.addEventListener('click', fn);} };
+      add('planBtn', plan); add('clearBtn', clearAll);
+      add('saveBtn', save); add('exportBtn', exportData);
+      add('nowBtn', logNow); add('checkBtn', sehCheck); add('installBtn', install);
+      window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      console.log('App init OK');
+    }
+
+    // Public API
+    return { plan, save, exportData, clearAll, logNow, sehCheck, install, init };
+  })();
+
+  // DOM ready (defensive)
+  (function(){
+    if(document.readyState==='complete' || document.readyState==='interactive'){
+      setTimeout(()=>{ try{ __app.init(); }catch(e){ console.error('init error (early)', e); } }, 0);
+    }else{
+      document.addEventListener('DOMContentLoaded', ()=>{ try{ __app.init(); }catch(e){ console.error('init error (DOMContentLoaded)', e); } });
+    }
+  })();
 </script>
 </body>
 </html>
