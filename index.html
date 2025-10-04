@@ -4,13 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tecvayli Monitor (NL)</title>
+<base href="/Tecvayli/">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2196f3">
 <style>
-  :root{
-    --primary:#2196f3; --bg:#fafafa; --card:#ffffff; --text:#111; --muted:#666;
-    --danger:#b00020; --ok:#0f7b0f; --shadow:0 4px 14px rgba(0,0,0,.08); --radius:16px;
-  }
+  :root{ --primary:#2196f3; --bg:#fafafa; --card:#ffffff; --text:#111; --muted:#666;
+         --danger:#b00020; --ok:#0f7b0f; --shadow:0 4px 14px rgba(0,0,0,.08); --radius:16px; }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,sans-serif}
   header{position:sticky;top:0;z-index:20;background:var(--primary);color:#fff;padding:14px 16px;padding-top:calc(env(safe-area-inset-top) + 12px);box-shadow:var(--shadow)}
@@ -170,13 +169,13 @@
       fields: {}
     };
     document.querySelectorAll('[data-k]').forEach(el=>{ data.fields[el.getAttribute('data-k')] = el.value; });
-    localStorage.setItem('tecvayli-monitor-nl-v22', JSON.stringify(data));
+    localStorage.setItem('tecvayli-monitor-nl-v23', JSON.stringify(data));
     document.getElementById('saveMsg').textContent = "Opgeslagen.";
     setTimeout(()=>document.getElementById('saveMsg').textContent="", 1500);
   }
 
   function restore(){
-    const raw = localStorage.getItem('tecvayli-monitor-nl-v22');
+    const raw = localStorage.getItem('tecvayli-monitor-nl-v23');
     if(!raw) return;
     const data = JSON.parse(raw);
     document.getElementById('dose').value = data.dose || document.getElementById('dose').value;
@@ -188,7 +187,7 @@
   }
 
   function restoreInputs(){
-    const raw = localStorage.getItem('tecvayli-monitor-nl-v22');
+    const raw = localStorage.getItem('tecvayli-monitor-nl-v23');
     const data = raw ? JSON.parse(raw) : {fields:{}};
     document.querySelectorAll('[data-k]').forEach(el=>{
       const k = el.getAttribute('data-k');
@@ -200,7 +199,7 @@
 
   function clearAll(){
     if(confirm('Alle opgeslagen gegevens wissen?')){
-      localStorage.removeItem('tecvayli-monitor-nl-v22'); location.reload();
+      localStorage.removeItem('tecvayli-monitor-nl-v23'); location.reload();
     }
   }
 
@@ -228,7 +227,7 @@
   document.getElementById('clearBtn').addEventListener('click', clearAll);
   document.getElementById('saveBtn').addEventListener('click', save);
   document.getElementById('exportBtn').addEventListener('click', ()=>{
-    const raw = localStorage.getItem('tecvayli-monitor-nl-v22') || '{}';
+    const raw = localStorage.getItem('tecvayli-monitor-nl-v23') || '{}';
     const blob = new Blob([raw], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download='tecvayli-monitor-data.json'; a.click(); URL.revokeObjectURL(url);
@@ -237,7 +236,7 @@
   document.getElementById('checkBtn').addEventListener('click', sehCheck);
 
   if('serviceWorker' in navigator){
-    window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+    window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
   }
 
   restore();
