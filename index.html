@@ -35,6 +35,10 @@
   @media(max-width:560px){.measure-grid{grid-template-columns:1fr}}
   .toolbar{position:sticky;bottom:0;z-index:30;background:#fff;padding:12px 10px;padding-bottom:calc(env(safe-area-inset-bottom) + 12px);box-shadow:0 -4px 14px rgba(0,0,0,.08);display:flex;gap:10px}
   .tool{flex:1}
+  .status{margin:10px 0 0 0}
+  .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px}
+  .badge.ok{background:#e6f4ea;color:#0f7b0f}
+  .badge.warn{background:#fdecea;color:#b00020}
 </style>
 </head>
 <body>
@@ -58,6 +62,7 @@
       <button id="clearBtn" class="secondary" type="button">🧹 Wissen</button>
     </div>
     <p class="muted" style="margin-top:8px">Hoogrisico: 48 uur na dosis (symptomen starten vaak ~1–2 dagen na T). Zet op beginscherm voor snelle toegang.</p>
+    <div id="statusLine" class="status"></div>
   </div>
 
   <div class="card">
@@ -65,7 +70,7 @@
     <div>
       <span class="chip">Koorts ≥38,5 °C (ondanks paracetamol)</span>
       <span class="chip">SpO₂ &lt;94% in rust</span>
-      <span class="chip">Systolisch &lt;90 mmHg of ≥30 mmHg daling + klachten</span>
+      <span class="chip">Systolisch &lt;90 mmHg</span>
       <span class="chip">Benauwdheid / blauwverkleuring</span>
       <span class="chip">Verwardheid / spraakstoornis / insult</span>
       <span class="chip">Hevige verergering of anafylaxie</span>
@@ -97,7 +102,7 @@
 
 <script>
   (function(){
-    const KEY='tecvayli-monitor-nl-v25';
+    const KEY='tecvayli-monitor-nl-v27';
     let deferredPrompt=null;
 
     const $ = sel => document.querySelector(sel);
@@ -106,6 +111,8 @@
 
     function addHours(d,h){const x=new Date(d); x.setHours(x.getHours()+h); return x;}
     function hhmm(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+    function toNum(v){ if(v==null) return NaN; const s=(String(v)).trim().replace(',', '.'); const n = parseFloat(s); return isNaN(n)? NaN : n; }
+    function toInt(v){ if(v==null) return NaN; const s=(String(v)).trim(); const n = parseInt(s, 10); return isNaN(n)? NaN : n; }
 
     function mkMeasureCard(title, key, timeVal){
       return `
@@ -113,13 +120,13 @@
           <h3 class="section-title">${title}</h3>
           <div class="measure-grid">
             <div><label>Tijd</label><input type="time" data-k="${key}-time" value="${timeVal||''}"></div>
-            <div><label>Temperatuur (°C)</label><input type="number" step="0.1" inputmode="decimal" data-k="${key}-temp" placeholder="bijv. 38.1"></div>
-            <div><label>SpO₂ (%)</label><input type="number" step="1" inputmode="numeric" data-k="${key}-spo2" placeholder="bijv. 97"></div>
-            <div><label>Pols (bpm)</label><input type="number" step="1" inputmode="numeric" data-k="${key}-pulse" placeholder="bijv. 88"></div>
+            <div><label>Temperatuur (°C)</label><input type="text" inputmode="decimal" data-k="${key}-temp" placeholder="bijv. 38,1"></div>
+            <div><label>SpO₂ (%)</label><input type="text" inputmode="numeric" data-k="${key}-spo2" placeholder="bijv. 97"></div>
+            <div><label>Pols (bpm)</label><input type="text" inputmode="numeric" data-k="${key}-pulse" placeholder="bijv. 88"></div>
             <div><label>BP zittend (mmHg)</label><input type="text" inputmode="numeric" data-k="${key}-bps" placeholder="bijv. 118/75"></div>
             <div><label>BP staand (mmHg)</label><input type="text" inputmode="numeric" data-k="${key}-bps2" placeholder="bijv. 110/70"></div>
             <div class="cols-2" style="grid-column:1/-1">
-              <div><label>Vocht (mL)</label><input type="number" step="50" inputmode="numeric" data-k="${key}-fluids" placeholder="bijv. 500"></div>
+              <div><label>Vocht (mL)</label><input type="text" inputmode="numeric" data-k="${key}-fluids" placeholder="bijv. 500"></div>
               <div><label>Klachten / notities</label><input type="text" data-k="${key}-sym" placeholder="bijv. rillingen, duizelig"></div>
             </div>
           </div>
@@ -142,22 +149,22 @@
       localStorage.setItem(KEY, JSON.stringify(data));
       const sm = byId('saveMsg');
       if(sm){ sm.textContent = 'Opgeslagen.'; setTimeout(()=>{ sm.textContent = ''; }, 1500); }
+      updateStatus();
     }
 
-    function restore(){
-      const raw = localStorage.getItem(KEY);
-      if(!raw) return;
-      const data = JSON.parse(raw);
-      if(byId('dose')) byId('dose').value = data.dose || byId('dose').value;
-      if(byId('t0')) byId('t0').value = data.t0 || '';
-      if(byId('date')) byId('date').value = data.date || '';
-      if(byId('para')) byId('para').value = data.para || '';
-      if(byId('anti')) byId('anti').value = data.anti || '';
+    function loadSaved(){ try{ const raw=localStorage.getItem(KEY); return raw? JSON.parse(raw): null; }catch(e){ return null; } }
+
+    function restoreHeader(saved){
+      if(!saved) return;
+      if(byId('dose')) byId('dose').value = saved.dose || byId('dose').value;
+      if(byId('t0')) byId('t0').value = saved.t0 || '';
+      if(byId('date')) byId('date').value = saved.date || '';
+      if(byId('para')) byId('para').value = saved.para || '';
+      if(byId('anti')) byId('anti').value = saved.anti || '';
     }
 
-    function restoreInputs(){
-      const raw = localStorage.getItem(KEY);
-      const data = raw ? JSON.parse(raw) : {fields:{}};
+    function restoreInputs(saved){
+      const data = saved || loadSaved() || {fields:{}};
       $$('[data-k]').forEach(el=>{
         const k = el.getAttribute('data-k');
         if(data.fields && data.fields[k]!==undefined){ el.value = data.fields[k]; }
@@ -166,10 +173,13 @@
       });
     }
 
-    function plan(){
-      const tStr = byId('t0')?.value;
-      const dStr = byId('date')?.value;
-      if(!tStr || !dStr){ alert('Kies een datum en T-tijdstip.'); return; }
+    function plan(fromSaved){
+      const tStr = (fromSaved?.t0) || byId('t0')?.value;
+      const dStr = (fromSaved?.date) || byId('date')?.value;
+      if(!tStr || !dStr){ 
+        if(!fromSaved) alert('Kies een datum en T-tijdstip.');
+        return; 
+      }
       const base = new Date(dStr+'T'+tStr+':00');
       const slots = [
         {label:'Baseline vóór dosis (T−30–0 min)', t:addHours(base,-0.5)},
@@ -189,37 +199,77 @@
       }
       const schedule = byId('schedule');
       schedule.innerHTML = html;
-      restoreInputs();
-      save();
+      restoreInputs(fromSaved);
+      if(!fromSaved){ save(); }
+      updateStatus();
     }
 
-    function clearAll(){
-      if(confirm('Alle opgeslagen gegevens wissen?')){
-        localStorage.removeItem(KEY);
-        location.reload();
+    function parseSys(bpStr){
+      if(!bpStr) return NaN;
+      const s = String(bpStr).trim();
+      const m = s.match(/(\d{1,3})\s*\/\s*(\d{1,3})/);
+      if(m){ return parseInt(m[1],10); }
+      const n = parseInt(s,10);
+      return isNaN(n)? NaN : n;
+    }
+
+    function pickLatestFilled(){
+      // Build list of measurement objects by order of appearance; prefer the last one that has any filled vital
+      const cards = $$('.measure-card');
+      let latest = null;
+      for(const card of cards){
+        const key = card.getAttribute('data-key');
+        const t = card.querySelector(`[data-k="${key}-time"]`)?.value || '';
+        const temp = card.querySelector(`[data-k="${key}-temp"]`)?.value || '';
+        const spo2 = card.querySelector(`[data-k="${key}-spo2"]`)?.value || '';
+        const bps = card.querySelector(`[data-k="${key}-bps"]`)?.value || '';
+        const has = (temp && temp.trim()) || (spo2 && spo2.trim()) || (bps && bps.trim());
+        if(has){
+          latest = { label: card.querySelector('h3')?.textContent || key, time: t, temp: temp, spo2: spo2, bps: bps };
+        }
       }
-    }
-
-    function logNow(){
-      const inputs = $$('[data-k$="-time"]');
-      if(!inputs.length){ alert('Maak eerst het 48u schema.'); return; }
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2,'0');
-      const mm = String(now.getMinutes()).padStart(2,'0');
-      const empty = inputs.find(i=>!i.value) || inputs[inputs.length-1];
-      empty.value = hh+':'+mm;
-      save();
+      return latest;
     }
 
     function sehCheck(){
-      const temps = $$('[data-k$="-temp"]');
-      const spo2s = $$('[data-k$="-spo2"]');
-      const temp = temps.length ? parseFloat(temps[temps.length-1].value || '') : NaN;
-      const spo2 = spo2s.length ? parseInt(spo2s[spo2s.length-1].value || '', 10) : NaN;
+      const latest = pickLatestFilled();
+      if(!latest){
+        alert('Geen ingevulde meting gevonden. Vul minstens temperatuur of SpO₂ in en probeer opnieuw.');
+        return;
+      }
+      const temp = toNum(latest.temp);
+      const spo2 = toInt(latest.spo2);
+      const sys = parseSys(latest.bps);
       const alerts = [];
-      if(!isNaN(temp) && temp >= 38.5) alerts.push('Koorts ≥38,5 °C');
-      if(!isNaN(spo2) && spo2 < 94) alerts.push('SpO₂ <94% in rust');
-      alert(alerts.length ? ('LET OP\n' + alerts.join('\n') + '\n→ Ga naar de SEH bij twijfel.') : 'Geen directe SEH-trigger gedetecteerd. Bij klachten altijd klinisch beoordelen.');
+      if(!isNaN(temp) && temp >= 38.5) alerts.push(`Koorts ${temp.toFixed(1)} °C (≥38,5)`);
+      if(!isNaN(spo2) && spo2 < 94) alerts.push(`SpO₂ ${spo2}% (<94)`);
+      if(!isNaN(sys) && sys < 90) alerts.push(`Systolisch ${sys} mmHg (<90)`);
+
+      if(alerts.length){
+        alert(`LET OP – mogelijk SEH
+Moment: ${latest.label}${latest.time?' om '+latest.time:''}
+`+alerts.join('
+')+`
+→ Ga naar de SEH bij twijfel.`);
+      }else{
+        alert(`Geen directe SEH-trigger gevonden bij: ${latest.label}${latest.time?' om '+latest.time:''}.
+Bij klachten altijd klinisch beoordelen.`);
+      }
+    }
+
+    function updateStatus(){
+      const latest = pickLatestFilled();
+      const el = byId('statusLine');
+      if(!el){ return; }
+      if(!latest){ el.innerHTML = '<span class="badge ok">Nog geen ingevulde metingen</span>'; return; }
+      const temp = toNum(latest.temp);
+      const spo2 = toInt(latest.spo2);
+      const sys = parseSys(latest.bps);
+      const parts = [];
+      if(!isNaN(temp)) parts.push(`Temp: ${temp.toFixed(1)} °C`);
+      if(!isNaN(spo2)) parts.push(`SpO₂: ${spo2}%`);
+      if(!isNaN(sys)) parts.push(`SYS: ${sys} mmHg`);
+      el.innerHTML = `<span class="badge ${(!isNaN(temp)&&temp>=38.5)||(!isNaN(spo2)&&spo2<94)||(!isNaN(sys)&&sys<90)?'warn':'ok'}">${parts.join(' · ')}${latest.time? ' — '+latest.time:''}</span>`;
     }
 
     function exportData(){
@@ -250,28 +300,23 @@
     }
 
     function init(){
-      // Restore data first
-      restore();
-      // Attach listeners
-      byId('planBtn')?.addEventListener('click', plan);
-      byId('clearBtn')?.addEventListener('click', clearAll);
+      const saved = loadSaved();
+      restoreHeader(saved);
+      if(saved && saved.t0 && saved.date){ plan(saved); }
+      byId('planBtn')?.addEventListener('click', ()=>plan());
+      byId('clearBtn')?.addEventListener('click', ()=>{ localStorage.removeItem(KEY); location.reload(); });
       byId('saveBtn')?.addEventListener('click', save);
       byId('exportBtn')?.addEventListener('click', exportData);
-      byId('nowBtn')?.addEventListener('click', logNow);
+      byId('nowBtn')?.addEventListener('click', ()=>{ const inputs = $$('[data-k$="-time"]'); if(!inputs.length){ alert('Maak eerst het 48u schema.'); return; } const now=new Date(); const hh = String(now.getHours()).padStart(2,'0'); const mm=String(now.getMinutes()).padStart(2,'0'); (inputs.find(i=>!i.value) || inputs[inputs.length-1]).value = hh+':'+mm; save(); });
       byId('checkBtn')?.addEventListener('click', sehCheck);
       byId('installBtn')?.addEventListener('click', install);
-      // Install prompt capture
       window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; });
-      // SW
       registerSW();
-      console.log('App init OK');
+      console.log('App init OK (v27)');
     }
 
-    if(document.readyState==='complete' || document.readyState==='interactive'){
-      setTimeout(init, 0);
-    }else{
-      document.addEventListener('DOMContentLoaded', init);
-    }
+    if(document.readyState==='complete' || document.readyState==='interactive'){ setTimeout(init, 0); }
+    else{ document.addEventListener('DOMContentLoaded', init); }
   })();
 </script>
 </body>
