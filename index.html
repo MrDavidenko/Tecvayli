@@ -1,235 +1,244 @@
 <!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Tecvayli Monitor (NL)</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#2196f3">
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,sans-serif;margin:0;background:#fafafa;color:#111}
-    header{background:#2196f3;color:#fff;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.1);position:sticky;top:0;z-index:10}
-    h1{font-size:20px;margin:0}
-    main{padding:12px 14px;max-width:900px;margin:0 auto}
-    .card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:12px 14px;margin:10px 0}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    label{font-weight:600;font-size:14px}
-    input,select,button,textarea{font:inherit;padding:10px;border:1px solid #ddd;border-radius:10px;background:#fff;min-width:0}
-    input[type=time]{width:140px}
-    button{background:#2196f3;color:#fff;border:none;cursor:pointer}
-    button.secondary{background:#eee;color:#111;border:1px solid #ddd}
-    .grid{display:grid;gap:8px}
-    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .muted{color:#666;font-size:12px}
-    .warn{color:#b00020;font-weight:700}
-    .ok{color:#0f7b0f;font-weight:700}
-    table{width:100%;border-collapse:collapse}
-    th,td{border:1px solid #eee;padding:8px;text-align:left;font-size:14px}
-    th{background:#f5f5f5}
-    .chip{display:inline-block;background:#e3f2fd;color:#0d47a1;padding:4px 8px;border-radius:999px;font-size:12px;margin-right:6px}
-    .footer{font-size:12px;color:#555;margin:14px 4px 24px}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tecvayli Monitor (NL)</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2196f3">
+<style>
+  :root{
+    --primary:#2196f3; --bg:#fafafa; --card:#ffffff; --text:#111; --muted:#666;
+    --danger:#b00020; --ok:#0f7b0f; --shadow:0 4px 14px rgba(0,0,0,.08); --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,sans-serif}
+  header{position:sticky;top:0;z-index:20;background:var(--primary);color:#fff;padding:14px 16px;padding-top:calc(env(safe-area-inset-top) + 12px);box-shadow:var(--shadow)}
+  h1{margin:0;font-size:18px}
+  main{padding:12px;max-width:900px;margin:0 auto}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin:10px 0}
+  .grid{display:grid;gap:10px}
+  .cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  @media (max-width:720px){.cols-2,.cols-3{grid-template-columns:1fr}}
+  label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+  input,select,textarea,button{font:inherit;border:1px solid #e5e5e5;border-radius:12px;padding:14px 12px;background:#fff;min-height:48px;width:100%}
+  textarea{min-height:110px}
+  button{background:var(--primary);color:#fff;border:none}
+  button.secondary{background:#eef3f8;color:#0d47a1;border:1px solid #d6e6fb}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+  .muted{color:var(--muted);font-size:13px}
+  .chip{display:inline-block;background:#e3f2fd;color:#0d47a1;padding:8px 10px;border-radius:999px;font-size:12px;margin:4px 6px 0 0}
+  .section-title{font-size:16px;margin:0 0 8px 0}
+  .measure-card{border:1px solid #efefef;border-radius:14px;padding:12px;background:#fff}
+  .measure-grid{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media(max-width:560px){.measure-grid{grid-template-columns:1fr}}
+  .toolbar{position:sticky;bottom:0;z-index:30;background:#fff;padding:12px 10px;padding-bottom:calc(env(safe-area-inset-bottom) + 12px);box-shadow:0 -4px 14px rgba(0,0,0,.08);display:flex;gap:10px}
+  .tool{flex:1}
+</style>
 </head>
 <body>
-  <header><h1>TECVAYLI® – Thuismonitoring (NL)</h1></header>
-  <main>
-    <div class="card">
-      <div class="row">
-        <div class="grid cols-3" style="flex:1">
-          <div><label>Dosis</label><br>
-            <select id="dose">
-              <option>0,06 mg/kg – Step-up 1</option>
-              <option>0,30 mg/kg – Step-up 2</option>
-              <option>0,80 mg/kg – Eerste volledige dosis</option>
-            </select>
+<header><h1>TECVAYLI® – Thuismonitoring</h1></header>
+<main>
+  <div class="card">
+    <div class="grid cols-3">
+      <div><label>Dosis</label>
+        <select id="dose">
+          <option>0,06 mg/kg – Step-up 1</option>
+          <option>0,30 mg/kg – Step-up 2</option>
+          <option>0,80 mg/kg – Eerste volledige dosis</option>
+        </select>
+      </div>
+      <div><label>Tijdstip toediening (T)</label><input id="t0" type="time"></div>
+      <div><label>Datum</label><input id="date" type="date"></div>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button id="planBtn">📅 Maak 48u schema</button>
+      <button id="clearBtn" class="secondary">🧹 Wissen</button>
+    </div>
+    <p class="muted" style="margin-top:8px">Hoogrisico: 48 uur na dosis (symptomen starten vaak ~1–2 dagen na T). Zet op beginscherm voor snelle toegang.</p>
+  </div>
+
+  <div class="card">
+    <h3 class="section-title">SEH-triggers (CRS/ICANS)</h3>
+    <div>
+      <span class="chip">Koorts ≥38,5 °C (ondanks paracetamol)</span>
+      <span class="chip">SpO₂ &lt;94% in rust</span>
+      <span class="chip">Systolisch &lt;90 mmHg of ≥30 mmHg daling + klachten</span>
+      <span class="chip">Benauwdheid / blauwverkleuring</span>
+      <span class="chip">Verwardheid / spraakstoornis / insult</span>
+      <span class="chip">Hevige verergering of anafylaxie</span>
+    </div>
+    <p class="muted">Ga bij twijfel direct naar de SEH (112 bij nood).</p>
+  </div>
+
+  <div id="schedule"></div>
+
+  <div class="card">
+    <h3 class="section-title">Notities & Medicatie</h3>
+    <div class="grid cols-2">
+      <div><label>Paracetamol</label><textarea id="para" placeholder="Bijv. 1000 mg om 14:00 en 22:00"></textarea></div>
+      <div><label>Antihistaminicum / Steroïd</label><textarea id="anti" placeholder="Bijv. loratadine 10 mg, prednisolon 100 mg (met tijden)"></textarea></div>
+    </div>
+    <div class="btn-row" style="margin-top:10px">
+      <button id="saveBtn">💾 Opslaan</button>
+      <button id="exportBtn" class="secondary">⬇️ Exporteer gegevens</button>
+    </div>
+    <p id="saveMsg" class="muted"></p>
+  </div>
+</main>
+
+<div class="toolbar">
+  <button class="tool" id="nowBtn">🕒 Log nu</button>
+  <button class="tool" id="checkBtn">✅ SEH-check</button>
+  <button class="tool" id="installBtn">➕ Installeer</button>
+</div>
+
+<script>
+  const scheduleEl = document.getElementById('schedule');
+  const planBtn = document.getElementById('planBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const saveMsg = document.getElementById('saveMsg');
+  const nowBtn = document.getElementById('nowBtn');
+  const checkBtn = document.getElementById('checkBtn');
+  const installBtn = document.getElementById('installBtn');
+  let deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; });
+  installBtn.addEventListener('click', async ()=>{
+    if(deferredPrompt){ deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; }
+    else{ alert('Open via HTTPS in Chrome om te installeren.'); }
+  });
+
+  function mkMeasureCard(title, key, timeVal){
+    return `
+      <div class="card measure-card" data-key="${key}">
+        <h3 class="section-title">${title}</h3>
+        <div class="measure-grid">
+          <div><label>Tijd</label><input type="time" data-k="${key}-time" value="${timeVal||''}"></div>
+          <div><label>Temperatuur (°C)</label><input type="number" step="0.1" inputmode="decimal" data-k="${key}-temp" placeholder="bijv. 38.1"></div>
+          <div><label>SpO₂ (%)</label><input type="number" step="1" inputmode="numeric" data-k="${key}-spo2" placeholder="bijv. 97"></div>
+          <div><label>Pols (bpm)</label><input type="number" step="1" inputmode="numeric" data-k="${key}-pulse" placeholder="bijv. 88"></div>
+          <div><label>BP zittend (mmHg)</label><input type="text" inputmode="numeric" data-k="${key}-bps" placeholder="bijv. 118/75"></div>
+          <div><label>BP staand (mmHg)</label><input type="text" inputmode="numeric" data-k="${key}-bps2" placeholder="bijv. 110/70"></div>
+          <div class="cols-2" style="grid-column:1/-1">
+            <div><label>Vocht (mL)</label><input type="number" step="50" inputmode="numeric" data-k="${key}-fluids" placeholder="bijv. 500"></div>
+            <div><label>Klachten / notities</label><input type="text" data-k="${key}-sym" placeholder="bijv. rillingen, duizelig"></div>
           </div>
-          <div><label>Tijdstip toediening (T)</label><br><input id="t0" type="time"></div>
-          <div><label>Datum</label><br><input id="date" type="date"></div>
-        </div>
-        <div>
-          <label>&nbsp;</label><br>
-          <button id="planBtn">Maak 48u schema</button>
-          <button id="clearBtn" class="secondary">Wis data</button>
         </div>
       </div>
-      <p class="muted">Hoogrisico: 48 uur na dosis (vaak start symptomen ~1–2 dagen na T). Bewaar deze app op je beginscherm voor snelle toegang.</p>
-    </div>
+    `;
+  }
+  function addHours(d,h){const x=new Date(d);x.setHours(x.getHours()+h);return x;}
+  function hhmm(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 
-    <div class="card">
-      <h3>SEH-triggers (CRS/ICANS)</h3>
-      <p>
-        <span class="chip">Koorts ≥38,5 °C (aanhoudend ondanks paracetamol)</span>
-        <span class="chip">SpO₂ &lt;94% in rust</span>
-        <span class="chip">Systolisch &lt;90 mmHg of ≥30 mmHg daling + klachten</span>
-        <span class="chip">Benauwdheid/blauwverkleuring</span>
-        <span class="chip">Verwardheid/spraakstoornis/insult</span>
-        <span class="chip">Hevige verergering of anafylaxie</span>
-      </p>
-      <p class="muted">Ga bij twijfel direct naar de SEH of bel 112.</p>
-    </div>
-
-    <div id="schedule"></div>
-
-    <div class="card">
-      <h3>Notities / Medicatie</h3>
-      <div class="grid cols-2">
-        <div>
-          <label>Paracetamol</label><br>
-          <textarea id="para" rows="3" placeholder="Bijv. 1000 mg om 14:00 en 22:00"></textarea>
-        </div>
-        <div>
-          <label>Antihistaminicum / Steroïd</label><br>
-          <textarea id="anti" rows="3" placeholder="Bijv. loratadine 10 mg, prednisolon 100 mg (met tijden)"></textarea>
-        </div>
-      </div>
-      <br>
-      <button id="saveBtn">Opslaan</button>
-      <span id="saveMsg" class="muted"></span>
-    </div>
-
-    <div class="footer">
-      Deze tool is informatief en vervangt geen medisch advies. Volg het plan van je arts. © Tecvayli Monitor (NL)
-    </div>
-  </main>
-
-  <script>
-    const scheduleEl = document.getElementById('schedule');
-    const planBtn = document.getElementById('planBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const saveMsg = document.getElementById('saveMsg');
-
-    function fmt(dt){return dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-    function addHours(dt, h){ let d=new Date(dt); d.setHours(d.getHours()+h); return d; }
-
-    function mkRow(label, key){
-      return (
-        '<tr>'+
-        '<td>'+label+'</td>'+
-        '<td><input data-k="'+key+'-time" type="time"></td>'+
-        '<td><input data-k="'+key+'-temp" type="number" step="0.1" placeholder="°C"></td>'+
-        '<td><input data-k="'+key+'-spo2" type="number" step="1" placeholder="%"></td>'+
-        '<td><input data-k="'+key+'-bps" type="text" placeholder="bijv. 118/75"></td>'+
-        '<td><input data-k="'+key+'-bps2" type="text" placeholder="bijv. 110/70"></td>'+
-        '<td><input data-k="'+key+'-pulse" type="number" step="1" placeholder="bpm"></td>'+
-        '<td><input data-k="'+key+'-fluids" type="number" step="50" placeholder="mL"></td>'+
-        '<td><input data-k="'+key+'-sym" type="text" placeholder="klachten/notities"></td>'+
-        '</tr>'
-      );
+  function plan(){
+    const tStr = document.getElementById('t0').value;
+    const dStr = document.getElementById('date').value;
+    if(!tStr || !dStr){ alert('Kies een datum en T-tijdstip.'); return; }
+    const base = new Date(dStr+'T'+tStr+':00');
+    const slots = [
+      {label:'Baseline vóór dosis (T−30–0 min)', t:addHours(base,-0.5)},
+      {label:'T + 2 uur', t:addHours(base,2)},
+      {label:'T + 6 uur / voor slapengaan', t:addHours(base,6)},
+      {label:'Dag +1 – ochtend', t:addHours(base,24)},
+      {label:'Dag +1 – middag', t:addHours(base,30)},
+      {label:'Dag +1 – avond', t:addHours(base,36)},
+      {label:'Dag +2 – ochtend', t:addHours(base,48)},
+      {label:'Dag +2 – middag', t:addHours(base,54)},
+      {label:'Dag +2 – avond', t:addHours(base,60)}
+    ];
+    let html='';
+    for(const s of slots){
+      const key = s.label.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+      html += mkMeasureCard(s.label, key, hhmm(s.t));
     }
+    scheduleEl.innerHTML = html;
+    restoreInputs();
+    save();
+  }
 
-    function buildTable(title, time){
-      const key = title.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
-      return (
-        '<div class="card">'+
-        '<h3>'+title+'</h3>'+
-        '<table>'+
-        '<thead><tr><th>Moment</th><th>Tijd</th><th>Temp</th><th>SpO₂</th><th>BP zittend</th><th>BP staand</th><th>Pols</th><th>Vocht</th><th>Klachten</th></tr></thead>'+
-        '<tbody>'+ mkRow('Metingen', key) +'</tbody></table>'+
-        '<p class="muted">Let op: ga naar de SEH bij drempelwaarden hierboven. Noteer paracetamol en andere medicatie in het vak hieronder.</p>'+
-        '</div>'
-      );
+  function save(){
+    const data = {
+      dose: document.getElementById('dose').value,
+      t0: document.getElementById('t0').value,
+      date: document.getElementById('date').value,
+      para: document.getElementById('para').value,
+      anti: document.getElementById('anti').value,
+      fields: {}
+    };
+    document.querySelectorAll('[data-k]').forEach(el=>{ data.fields[el.getAttribute('data-k')] = el.value; });
+    localStorage.setItem('tecvayli-monitor-nl-v2', JSON.stringify(data));
+    saveMsg.textContent = "Opgeslagen.";
+    setTimeout(()=>saveMsg.textContent="", 1500);
+  }
+
+  function restore(){
+    const raw = localStorage.getItem('tecvayli-monitor-nl-v2');
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    document.getElementById('dose').value = data.dose || document.getElementById('dose').value;
+    document.getElementById('t0').value = data.t0 || "";
+    document.getElementById('date').value = data.date || "";
+    document.getElementById('para').value = data.para || "";
+    document.getElementById('anti').value = data.anti || "";
+    if(data.t0 && data.date){ plan(); }
+  }
+
+  function restoreInputs(){
+    const raw = localStorage.getItem('tecvayli-monitor-nl-v2');
+    const data = raw ? JSON.parse(raw) : {fields:{}};
+    document.querySelectorAll('[data-k]').forEach(el=>{
+      const k = el.getAttribute('data-k');
+      if(data.fields && data.fields[k]!==undefined){ el.value = data.fields[k]; }
+      el.addEventListener('change', save);
+      el.addEventListener('input', save);
+    });
+  }
+
+  function clearAll(){
+    if(confirm('Alle opgeslagen gegevens wissen?')){
+      localStorage.removeItem('tecvayli-monitor-nl-v2'); location.reload();
     }
+  }
 
-    function plan(){
-      const tStr = document.getElementById('t0').value;
-      const dStr = document.getElementById('date').value;
-      if(!tStr || !dStr){ alert('Kies een datum en T-tijdstip.'); return; }
-      const [hh,mm] = tStr.split(':').map(Number);
-      const base = new Date(dStr+'T'+tStr+':00');
+  function logNow(){
+    const inputs = Array.from(document.querySelectorAll('[data-k$="-time"]'));
+    if(!inputs.length){ alert('Maak eerst het 48u schema.'); return; }
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const empty = inputs.find(i=>!i.value) || inputs[inputs.length-1];
+    empty.value = hh+':'+mm; save();
+  }
 
-      const slots = [
-        {label:'Baseline vóór dosis (T−30–0 min)', t: addHours(base, -0.5)},
-        {label:'T + 2 uur', t: addHours(base, 2)},
-        {label:'T + 6 uur / voor slapengaan', t: addHours(base, 6)},
-        {label:'Dag +1 – ochtend', t: addHours(base, 24)},
-        {label:'Dag +1 – middag', t: addHours(base, 30)},
-        {label:'Dag +1 – avond', t: addHours(base, 36)},
-        {label:'Dag +2 – ochtend', t: addHours(base, 48)},
-        {label:'Dag +2 – middag', t: addHours(base, 54)},
-        {label:'Dag +2 – avond', t: addHours(base, 60)},
-      ];
+  function sehCheck(){
+    const last = (sel)=>{const arr=Array.from(document.querySelectorAll(sel));return arr[arr.length-1];}
+    const temp = parseFloat(last('[data-k$="-temp"]')?.value||"");
+    const spo2 = parseInt(last('[data-k$="-spo2"]')?.value||"",10);
+    let alerts=[];
+    if(!isNaN(temp) && temp>=38.5) alerts.push('Koorts ≥38,5 °C');
+    if(!isNaN(spo2) && spo2<94) alerts.push('SpO₂ <94% in rust');
+    alert(alerts.length ? ('LET OP\n'+alerts.join('\n')+'\n→ Ga naar de SEH bij twijfel.') : 'Geen directe SEH-trigger gedetecteerd. Bij klachten altijd klinisch beoordelen.');
+  }
 
-      let html='';
-      for(const s of slots){
-        html += buildTable(s.label, s.t);
-      }
-      scheduleEl.innerHTML = html;
-      restoreInputs();
-      // prefill times
-      const inputs = document.querySelectorAll('input[type=time][data-k$="-time"]');
-      inputs.forEach((inp, i)=>{
-        const tt = slots[i] ? slots[i].t : null;
-        if(tt){
-          const h = String(tt.getHours()).padStart(2,'0');
-          const m = String(tt.getMinutes()).padStart(2,'0');
-          inp.value = h+':'+m;
-        }
-      });
-      save();
-    }
+  planBtn.addEventListener('click', plan);
+  clearBtn.addEventListener('click', clearAll);
+  saveBtn.addEventListener('click', save);
+  exportBtn.addEventListener('click', ()=>{
+    const raw = localStorage.getItem('tecvayli-monitor-nl-v2') || '{}';
+    const blob = new Blob([raw], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='tecvayli-monitor-data.json'; a.click(); URL.revokeObjectURL(url);
+  });
+  nowBtn.addEventListener('click', logNow);
+  checkBtn.addEventListener('click', sehCheck);
 
-    function save(){
-      const data = {
-        dose: document.getElementById('dose').value,
-        t0: document.getElementById('t0').value,
-        date: document.getElementById('date').value,
-        para: document.getElementById('para').value,
-        anti: document.getElementById('anti').value,
-        fields: {}
-      };
-      document.querySelectorAll('[data-k]').forEach(el=>{
-        data.fields[el.getAttribute('data-k')] = el.value;
-      });
-      localStorage.setItem('tecvayli-monitor-nl', JSON.stringify(data));
-      saveMsg.textContent = "Opgeslagen.";
-      setTimeout(()=>saveMsg.textContent="", 1500);
-    }
+  if('serviceWorker' in navigator){ window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
 
-    function restore(){
-      const raw = localStorage.getItem('tecvayli-monitor-nl');
-      if(!raw) return;
-      const data = JSON.parse(raw);
-      document.getElementById('dose').value = data.dose || document.getElementById('dose').value;
-      document.getElementById('t0').value = data.t0 || "";
-      document.getElementById('date').value = data.date || "";
-      document.getElementById('para').value = data.para || "";
-      document.getElementById('anti').value = data.anti || "";
-      if(data.t0 && data.date) plan();
-    }
-
-    function restoreInputs(){
-      const raw = localStorage.getItem('tecvayli-monitor-nl');
-      if(!raw) return;
-      const data = JSON.parse(raw);
-      document.querySelectorAll('[data-k]').forEach(el=>{
-        const k = el.getAttribute('data-k');
-        if(data.fields && data.fields[k]!==undefined){ el.value = data.fields[k]; }
-        el.addEventListener('change', save);
-        el.addEventListener('input', save);
-      });
-    }
-
-    function clearAll(){
-      if(confirm('Alle opgeslagen gegevens wissen?')){
-        localStorage.removeItem('tecvayli-monitor-nl');
-        location.reload();
-      }
-    }
-
-    planBtn.addEventListener('click', plan);
-    clearBtn.addEventListener('click', clearAll);
-    saveBtn.addEventListener('click', save);
-
-    // Register service worker for offline (note: requires HTTPS hosting)
-    if('serviceWorker' in navigator){
-      window.addEventListener('load', ()=>{
-        navigator.serviceWorker.register('./sw.js').catch(()=>{});
-      });
-    }
-
-    restore();
-  </script>
+  restore();
+</script>
 </body>
 </html>
